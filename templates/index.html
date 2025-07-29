@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>企業情報マップ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        
+        /* Header Styles */
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #header h1 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        #service-name {
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        #map { 
+            height: 100vh; 
+            width: 100vw; 
+            padding-top: 70px;
+            box-sizing: border-box;
+        }
+        
+        #search-container {
+            position: absolute;
+            top: 120px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            width: 350px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        #search-container.hidden {
+            transform: translateX(400px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        #search-input { 
+            width: calc(100% - 20px); 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 2px solid #e1e5e9; 
+            border-radius: 8px; 
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        
+        #search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        #search-results { 
+            max-height: 300px; 
+            overflow-y: auto; 
+            border-top: 1px solid #eee; 
+            padding-top: 15px; 
+        }
+        
+        .search-result-item { 
+            padding: 12px 10px; 
+            cursor: pointer; 
+            border-bottom: 1px solid #f0f0f0; 
+            transition: all 0.2s ease;
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+        
+        .search-result-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .search-result-address {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.4;
+        }
+        
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { 
+            background-color: #f8f9ff; 
+            transform: translateX(5px);
+        }
+
+        #favorites-sidebar {
+            position: absolute;
+            top: 70px;
+            left: -350px;
+            width: 320px;
+            height: calc(100% - 70px);
+            background: white;
+            z-index: 1001;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+            transition: left 0.3s ease-in-out;
+            padding: 25px 15px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        #favorites-sidebar.open { left: 0; }
+        
+        #favorites-toggle-btn {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            z-index: 1002;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        #search-toggle-btn {
+            position: absolute;
+            top: 80px;
+            right: 20px;
+            z-index: 1002;
+            padding: 12px 18px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            font-weight: 500;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        #search-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        #favorites-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        #favorites-sidebar h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        #favorites-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        
+        #favorites-list li { 
+            padding: 15px 12px; 
+            border-bottom: 1px solid #f0f0f0; 
+            cursor: pointer; 
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        #favorites-list li:last-child { border-bottom: none; }
+        #favorites-list li:hover { 
+            background-color: #f8f9ff; 
+            transform: translateX(5px);
+        }
+        
+        /* Custom scrollbar */
+        #search-results::-webkit-scrollbar,
+        #favorites-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        #search-results::-webkit-scrollbar-track,
+        #favorites-sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        #search-results::-webkit-scrollbar-thumb,
+        #favorites-sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        #search-results::-webkit-scrollbar-thumb:hover,
+        #favorites-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 新規企業登録フォーム */
+        #register-section {
+            margin-top: 15px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .register-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 8px;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+        }
+
+        .register-toggle:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e9f7f 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
+
+        #toggle-icon {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .register-toggle.expanded #toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .register-form {
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0;
+        }
+
+        .register-form.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .register-form.expanded {
+            max-height: 300px;
+            opacity: 1;
+            padding: 15px;
+        }
+
+        .register-form input {
+            width: calc(100% - 16px);
+            padding: 10px 8px;
+            margin-bottom: 10px;
+            border: 1.5px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
+        .register-form input:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .register-btn, .cancel-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .register-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .register-btn:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e9f7f 100%);
+            transform: translateY(-1px);
+        }
+
+        .register-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cancel-btn {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .cancel-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .register-message {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+            min-height: 0;
+            transition: all 0.3s ease;
+        }
+
+        .register-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .register-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 検索結果のセクションヘッダー */
+        .search-section-header {
+            font-weight: 600;
+            font-size: 13px;
+            color: #495057;
+            margin: 15px 8px 8px 8px;
+            padding: 6px 0;
+            border-bottom: 2px solid #e9ecef;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .search-section-header.random-header {
+            color: #6f42c1;
+            border-bottom: 2px solid #d1ecf1;
+            background: linear-gradient(135deg, #e7f3ff 0%, #cce5ff 100%);
+        }
+
+        /* ランダム企業のスタイル */
+        .search-result-item.random-item {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e6f3ff 100%);
+            border-left: 3px solid #007bff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-result-item.random-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 0 15px 15px 0;
+            border-color: transparent #007bff transparent transparent;
+        }
+
+        .search-result-item.random-item:hover {
+            background: linear-gradient(135deg, #e6f3ff 0%, #cce5ff 100%);
+            transform: translateX(3px);
+        }
+
+        .random-icon {
+            margin-left: 8px;
+            font-size: 14px;
+            animation: sparkle 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            #header {
+                height: 60px;
+                padding: 0 15px;
+                flex-direction: column;
+                justify-content: center;
+                text-align: center;
+            }
+            
+            #header h1 {
+                font-size: 18px;
+                margin-bottom: 2px;
+            }
+            
+            #service-name {
+                font-size: 12px;
+                opacity: 0.8;
+            }
+            
+            #map {
+                padding-top: 60px;
+            }
+            
+            #search-container {
+                top: 110px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+                padding: 15px;
+                border-radius: 8px;
+            }
+            
+            #search-toggle-btn {
+                top: 70px;
+                right: 10px;
+                padding: 10px 12px;
+                font-size: 14px;
+                border-radius: 6px;
+            }
+            
+            #search-input {
+                width: calc(100% - 16px);
+                padding: 14px 8px;
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+            
+            #search-results {
+                max-height: 200px;
+            }
+            
+            .search-result-item {
+                padding: 14px 8px;
+                margin-bottom: 3px;
+            }
+            
+            .search-result-name {
+                font-size: 15px;
+                margin-bottom: 6px;
+            }
+            
+            .search-result-address {
+                font-size: 13px;
+            }
+            
+            #favorites-toggle-btn {
+                top: 70px;
+                left: 10px;
+                padding: 10px 12px;
+                font-size: 14px;
+                border-radius: 6px;
+            }
+            
+            #favorites-sidebar {
+                top: 60px;
+                left: -100%;
+                width: 85%;
+                max-width: 300px;
+                height: calc(100% - 60px);
+                padding: 20px 12px;
+            }
+            
+            #favorites-sidebar.open {
+                left: 0;
+            }
+            
+            #favorites-sidebar h2 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            #favorites-list li {
+                padding: 12px 8px;
+                margin-bottom: 6px;
+                font-size: 14px;
+            }
+            
+            /* Touch-friendly hover effects */
+            .search-result-item:hover,
+            .search-result-item:active {
+                background-color: #f0f4ff;
+                transform: none;
+            }
+            
+            #favorites-list li:hover,
+            #favorites-list li:active {
+                background-color: #f0f4ff;
+                transform: none;
+            }
+            
+            #favorites-toggle-btn:hover,
+            #favorites-toggle-btn:active {
+                transform: none;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+
+            /* 登録フォームのモバイル対応 */
+            .register-toggle {
+                padding: 14px 10px;
+                font-size: 15px;
+            }
+
+            .register-form.expanded {
+                padding: 12px;
+            }
+
+            .register-form input {
+                padding: 12px 8px;
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+
+            .register-btn, .cancel-btn {
+                padding: 12px;
+                font-size: 15px;
+            }
+
+            .register-toggle:hover,
+            .register-toggle:active {
+                transform: none;
+                box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+            }
+
+            .register-btn:hover,
+            .register-btn:active {
+                transform: none;
+            }
+        }
+
+        /* Extra small devices (phones in portrait) */
+        @media (max-width: 480px) {
+            #header {
+                height: 50px;
+                padding: 0 10px;
+            }
+            
+            #header h1 {
+                font-size: 16px;
+            }
+            
+            #service-name {
+                font-size: 11px;
+            }
+            
+            #map {
+                padding-top: 50px;
+            }
+            
+            #search-container {
+                top: 100px;
+                right: 8px;
+                left: 8px;
+                padding: 12px;
+            }
+            
+            #search-toggle-btn {
+                top: 60px;
+                right: 8px;
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            #search-input {
+                padding: 12px 6px;
+                font-size: 16px;
+            }
+            
+            #search-results {
+                max-height: 180px;
+            }
+            
+            .search-result-item {
+                padding: 12px 6px;
+            }
+            
+            .search-result-name {
+                font-size: 14px;
+            }
+            
+            .search-result-address {
+                font-size: 12px;
+            }
+            
+            #favorites-toggle-btn {
+                top: 60px;
+                left: 8px;
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            
+            #favorites-sidebar {
+                top: 50px;
+                width: 90%;
+                height: calc(100% - 50px);
+                padding: 15px 10px;
+            }
+            
+            #favorites-sidebar h2 {
+                font-size: 16px;
+                margin-bottom: 12px;
+            }
+            
+            #favorites-list li {
+                padding: 10px 6px;
+                font-size: 13px;
+            }
+        }
+
+        /* Landscape mode adjustments for mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            #header {
+                height: 45px;
+            }
+            
+            #header h1 {
+                font-size: 16px;
+            }
+            
+            #service-name {
+                display: none;
+            }
+            
+            #map {
+                padding-top: 45px;
+            }
+            
+            #search-container {
+                top: 95px;
+            }
+            
+            #search-toggle-btn {
+                top: 55px;
+            }
+            
+            #favorites-toggle-btn {
+                top: 55px;
+            }
+            
+            #favorites-sidebar {
+                top: 45px;
+                height: calc(100% - 45px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>企業情報マップ</h1>
+        <div id="service-name">Corporate Map System</div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <button id="search-toggle-btn">検索</button>
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="企業名・住所・市区町村を検索（東京都内限定）">
+        <div id="search-results"></div>
+        
+        <!-- 新規企業登録セクション -->
+        <div id="register-section">
+            <div id="register-toggle" class="register-toggle">
+                <span>新しい企業を登録</span>
+                <span id="toggle-icon">▼</span>
+            </div>
+            <div id="register-form" class="register-form collapsed">
+                <input type="text" id="company-name" placeholder="企業名" required>
+                <input type="text" id="company-address" placeholder="住所（東京都内のみ）" required>
+                <input type="text" id="company-number" placeholder="法人番号（任意）">
+                <div class="form-buttons">
+                    <button id="register-btn" class="register-btn">登録</button>
+                    <button id="cancel-btn" class="cancel-btn">キャンセル</button>
+                </div>
+                <div id="register-message" class="register-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <button id="favorites-toggle-btn">お気に入り</button>
+    <div id="favorites-sidebar">
+        <h2>お気に入り企業</h2>
+        <ul id="favorites-list"></ul>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>
