@@ -118,8 +118,7 @@ CREATE TABLE companies (
 
 ### 1. リポジトリのクローン
 ```bash
-git clone <repository-url>
-cd dbs_final
+git clone "https://github.com/pamo0827/tokyo-corporate-map"
 ```
 
 ### 2. 仮想環境の作成・有効化
