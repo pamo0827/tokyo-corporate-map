@@ -142,7 +142,7 @@ pip install flask mysql-connector-python fuzzywuzzy python-levenshtein requests
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME=dbs_final
+DB_NAME=database_name
 FLASK_DEBUG=True
 FLASK_HOST=127.0.0.1
 FLASK_PORT=5000
@@ -162,8 +162,6 @@ python3 fetch_gbiz_data.py
 ```bash
 python3 app.py
 ```
-
-アプリケーションは `http://127.0.0.1:5000` でアクセス可能です。
 
 ## 📖 使用方法
 
