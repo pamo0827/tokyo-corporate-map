@@ -60,3 +60,5 @@ logs/
 
 # Claude settings
 .claude/
+# Local secrets (do not commit)
+secrets_local.py

@@ -53,7 +53,8 @@ def create_database_and_tables():
                     address VARCHAR(255) NOT NULL,
                     latitude FLOAT,
                     longitude FLOAT,
-                    corporate_number VARCHAR(20) UNIQUE
+                    corporate_number VARCHAR(20) UNIQUE,
+                    activity INT DEFAULT 0
                 )
             """)
         conn.commit()

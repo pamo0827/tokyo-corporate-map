@@ -1,6 +1,13 @@
 import os
 from dataclasses import dataclass
 
+# APIキー等の秘匿情報は secrets_local.py（gitignore対象）または環境変数から読む。
+# リポジトリには実キーを含めない。
+try:
+    from secrets_local import GBIZ_API_TOKEN as _GBIZ, EDINET_API_KEY as _EDINET
+except Exception:
+    _GBIZ = _EDINET = ''
+
 @dataclass
 class DatabaseConfig:
     host: str = os.getenv('DB_HOST', 'localhost')
@@ -15,16 +22,11 @@ class AppConfig:
     port: int = int(os.getenv('FLASK_PORT', '5000'))
 
 @dataclass
-class SearchConfig:
-    similarity_threshold: int = int(os.getenv('SEARCH_SIMILARITY_THRESHOLD', '70'))
-
-@dataclass
 class APIConfig:
-    gbiz_token: str = os.getenv('GBIZ_API_TOKEN', '7zNLwssU7OUnhFvcEBVEjPeg2Ih9DOzx')
-    corporate_number_api_id: str = os.getenv('CORPORATE_NUMBER_API_ID', '')
+    gbiz_token: str = os.getenv('GBIZ_API_TOKEN', _GBIZ)
+    edinet_api_key: str = os.getenv('EDINET_API_KEY', _EDINET)
     timeout: int = int(os.getenv('API_TIMEOUT', '10'))
 
 db_config = DatabaseConfig()
 app_config = AppConfig()
-search_config = SearchConfig()
 api_config = APIConfig()
