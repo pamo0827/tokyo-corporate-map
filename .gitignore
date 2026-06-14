@@ -62,3 +62,7 @@ logs/
 .claude/
 # Local secrets (do not commit)
 secrets_local.py
+
+# DB dump (do not commit)
+tokyo_dump.sql
+dumperr.txt
