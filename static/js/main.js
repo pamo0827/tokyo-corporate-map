@@ -411,6 +411,17 @@ const FIELD_LABELS = {
     // 出所・その他
     disclosure_time: '開示時刻', source_disclosure_date: '出所 開示日',
     source_quarter: '出所 四半期', value: '値',
+    // 財務（追加）
+    extraordinary_income: '特別利益', extraordinary_loss: '特別損失',
+    impairment_loss: '減損損失', goodwill: 'のれん',
+    land: '土地', construction_in_progress: '建設仮勘定',
+    short_term_loans: '短期借入金', bonds_payable: '社債',
+    commercial_papers: 'コマーシャルペーパー', net_defined_benefit_asset: '退職給付に係る資産',
+    // 不動産
+    real_estate: '不動産情報', bs_land_m_yen: '土地（百万円）',
+    bs_real_estate_total_m_yen: '不動産合計（百万円）',
+    // 自己株式（追加）
+    treasury_shares_as_of_date: '自己株式 基準日', treasury_shares_count_kei: '自己株式数（計）',
 };
 
 function fieldLabel(k) {

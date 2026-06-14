@@ -1,288 +1,150 @@
-# 東京企業マップシステム (Tokyo Corporate Map System)
+# 企業情報マップ (Corporate Map)
 
-![企業情報マップ](https://img.shields.io/badge/Status-Production%20Ready-green.svg)
-![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-2.0+-orange.svg)
-![MySQL](https://img.shields.io/badge/MySQL-8.0+-blue.svg)
-![Mobile](https://img.shields.io/badge/Mobile-Responsive-purple.svg)
-![Tokyo](https://img.shields.io/badge/Area-Tokyo%20Only-red.svg)
+全国の企業を一覧・検索・地図表示し、各社の詳細情報（EDINET / gBizINFO）を閲覧できる Web アプリケーションです。約13,000社（gBizINFO の活動実績上位企業＋全業種の上場・著名企業）を収録しています。
 
-</div>
-
-## 📋 目次
+## 目次
 
 - [概要](#概要)
 - [主な機能](#主な機能)
 - [技術スタック](#技術スタック)
+- [データソース](#データソース)
 - [セットアップ](#セットアップ)
-- [使用方法](#使用方法)
+- [起動方法](#起動方法)
+- [データ生成スクリプト](#データ生成スクリプト)
 - [API仕様](#api仕様)
 - [ディレクトリ構成](#ディレクトリ構成)
+- [デプロイについて](#デプロイについて)
+- [補足・制約](#補足制約)
 
-## 🎯 概要
+## 概要
 
-東京企業マップシステムは、**東京都内限定**の企業情報を地図上で視覚的に表示し、検索・お気に入り登録・新規企業登録ができるWebアプリケーションです。皇居を中心とした高精度な地図表示と最寄駅情報により、東京都内の企業探索を効率化します。
+左ペインに企業一覧（社名の五十音「あかさたな」で折りたたみ分類）、右ペインに地図または詳細を表示する2ペイン構成です。企業を選ぶと、その地点に地図ピンを立て、右ペインの詳細タブで EDINET と gBizINFO の取得可能な全項目を日本語ラベルで表示します。
 
-### 🌟 主要な特徴
+## 主な機能
 
-- **皇居中心の地図表示**: 東京都の中心である皇居を基点とした詳細地図
-- **東京都限定**: 地図表示・企業登録を東京都内のみに制限
-- **最寄駅情報**: 25の主要駅からの徒歩時間とルート表示
-- **高度な検索機能**: 企業名・住所・市区町村での曖昧検索（類似度70%以上）
-- **スマートレコメンデーション**: 常時3件のランダムおすすめ企業表示
-- **レスポンシブデザイン**: PC・タブレット・スマートフォン完全対応
-- **リアルタイム登録**: GeoCoding APIによる正確な座標取得
-- **UI切り替え**: 検索バー・お気に入りサイドバーの表示/非表示
+- 企業一覧: 社名の五十音で分類した折りたたみ表示。初期は全セクション閉じた状態。
+- 検索: 左上の検索バーで企業名・住所を即時絞り込み。
+- 地図: 初期はピンなし。企業を選択したときだけ、その企業のピンを表示。
+  - 座標を持たない企業は、選択時に住所（または EDINET の本社所在地）から町丁目レベルでジオコーディングしてピンを付与し、結果を DB に保存（次回以降は即表示）。
+- 詳細パネル: 地図／詳細をタブで切替（初期は詳細）。EDINET と gBizINFO の全フィールドを日本語項目名で表示。
+- 分割比率: 一覧と地図の境界をドラッグして自由にリサイズ（初期は一覧4：地図6）。
+- レスポンシブ: スマートフォンでは上下分割。
 
-## ✨ 主な機能
+## 技術スタック
 
-###  地図機能
-- **東京都境界制限**: 地図移動を東京都内に制限（maxBounds設定）
-- **企業マーカー表示**: 東京都内の全企業をピンポイント表示
-- **カスタムアイコン**: お気に入り企業は赤色、通常企業は青色、駅は緑色
-- **ポップアップ情報**: 企業名・住所・お気に入り登録ボタン
-- **ズーム・パン操作**: マウス・タッチでスムーズな地図操作
+- バックエンド: Python / Flask
+- データベース: MySQL
+- フロントエンド: 素の HTML / CSS / JavaScript、地図は Leaflet（OpenStreetMap タイル）
+- 外部API: gBizINFO（経済産業省）/ edinetdb.jp（EDINET 由来の上場企業財務）/ geolonia japanese-addresses（住所→緯度経度）
 
-###  最寄駅・ルート機能
-- **25主要駅データ**: 新宿、渋谷、池袋、東京駅など東京の主要駅を網羅
-- **徒歩時間計算**: 平均歩行速度4km/hで正確な徒歩時間を算出
-- **ルート表示**: 企業から最寄駅までの破線ルートを地図上に表示
-- **駅情報パネル**: 左下に駅名・徒歩時間・利用路線を表示
-- **ルート切り替え**: ワンクリックでルート表示/非表示
+## データソース
 
-###  検索・発見機能
-- **東京都限定検索**: 企業名・住所・市区町村での部分一致検索（東京都内のみ）
-- **曖昧検索**: fuzzywuzzyライブラリによる柔軟な類似度マッチング（70%以上）
-- **おすすめ企業**: 検索結果に関係なく常時3件のランダム企業を表示
-- **セクション分け**: 「検索結果」と「おすすめ企業」を視覚的に区別
-- **表示切替**: 検索バーの表示/非表示切り替えボタン
+- gBizINFO: 法人名・所在地・代表者・従業員数・事業概要・活動実績など。
+- edinetdb.jp: 上場企業の財務（売上高・各利益・BS/PL/CF）、信用スコア、配当、従業員指標など。無料プランは 100リクエスト/日。
+- geolonia/japanese-addresses: 町丁目レベルの緯度経度（無料・全国）。
 
-###  お気に入り機能
-- **サイドバー管理**: 左側スライドパネルでお気に入り企業を一覧表示
-- **ワンクリック登録**: 企業ポップアップから簡単お気に入り登録・解除
-- **LocalStorage**: ブラウザ内でお気に入り情報を永続化
-- **クイックアクセス**: お気に入りリストから直接地図ジャンプ
+## セットアップ
 
-###  企業登録機能
-- **フォーム入力**: 企業名・住所（東京都内のみ）・法人番号（任意）
-- **GeoCoding API**: OpenStreetMap Nominatim APIで住所から座標を取得
-- **東京都内制限**: 座標が東京都外の場合は登録拒否
-- **フォールバック機能**: API失敗時は主要エリア座標で推定
-- **即座反映**: 登録完了と同時に地図・検索結果に反映
-- **重複チェック**: 同名企業の重複登録を防止
+前提: Python 3.9+ / MySQL 8.0+
 
-###  モバイル対応
-- **レスポンシブレイアウト**: 768px/480px ブレークポイント
-- **タッチ最適化**: ボタンサイズ・操作性の最適化
-- **画面回転対応**: 縦向き・横向き両対応
-- **フォント調整**: iOSズーム防止のための16pxフォント
-- **モバイル専用UI**: 検索バー・サイドバーの最適化
-
-## 🛠️ 技術スタック
-
-### バックエンド
-- **Python 3.9+**: メイン開発言語
-- **Flask 2.0+**: 軽量Webフレームワーク
-- **MySQL 8.0+**: リレーショナルデータベース
-- **fuzzywuzzy**: 曖昧文字列マッチングライブラリ
-- **requests**: HTTP APIクライアント（GeoCoding用）
-
-### フロントエンド
-- **HTML5/CSS3**: モダンなマークアップ・スタイリング
-- **JavaScript (ES6+)**: フロントエンド機能実装
-- **Leaflet.js 1.9+**: オープンソース地図ライブラリ
-- **OpenStreetMap**: 地図タイルデータソース
-
-### API統合
-- **OpenStreetMap Nominatim**: 住所ジオコーディングAPI
-- **駅情報API**: 東京25主要駅の座標・路線データ統合
-
-### データベース設計
-```sql
-CREATE TABLE companies (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address VARCHAR(255) NOT NULL,
-    latitude FLOAT,
-    longitude FLOAT,
-    corporate_number VARCHAR(20) UNIQUE
-);
-```
-
-## 🚀 セットアップ
-
-### 必要な環境
-- Python 3.9以上
-- MySQL 8.0以上
-- pip (Python パッケージマネージャー)
-
-### 1. リポジトリのクローン
-```bash
-git clone "https://github.com/pamo0827/tokyo-corporate-map"
-```
-
-### 2. 仮想環境の作成・有効化
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# または
-venv\Scripts\activate  # Windows
-```
-
-### 3. 依存関係のインストール
-```bash
+source venv/bin/activate
 pip install -r requirements.txt
-# または個別インストール
-pip install flask mysql-connector-python fuzzywuzzy python-levenshtein requests
 ```
 
-### 4. 環境変数の設定
-`.env`ファイルを作成し、以下を設定：
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=database_name
-FLASK_DEBUG=True
-FLASK_HOST=127.0.0.1
-FLASK_PORT=5000
-SEARCH_SIMILARITY_THRESHOLD=70
+### 秘匿情報の設定
+
+API キーはリポジトリに含めていません。`secrets_local.py`（`.gitignore` 済み）を作成するか、環境変数で設定します。
+
+`secrets_local.py` の例:
+
+```python
+GBIZ_API_TOKEN = "your_gbiz_token"
+EDINET_API_KEY = "your_edinetdb_key"
 ```
 
-### 5. データベースのセットアップ
+環境変数の例:
+
 ```bash
-# MySQLサーバーを起動
-mysql -u root -p
-
-# データベースとテーブルの作成、サンプルデータの挿入
-python3 fetch_gbiz_data.py
+export GBIZ_API_TOKEN=your_gbiz_token
+export EDINET_API_KEY=your_edinetdb_key
 ```
 
-### 6. アプリケーションの起動
+### データベース
+
+`config.py` の `DatabaseConfig`（環境変数 `DB_HOST` / `DB_USER` / `DB_PASSWORD` / `DB_NAME`）で接続先を設定します。テーブルは `db_utils.create_database_and_tables()` および各データ生成スクリプトが自動作成します。
+
+## 起動方法
+
 ```bash
-python3 app.py
+# 例: ポート5001で起動（macOSの5000はAirPlayが使用するため）
+FLASK_PORT=5001 venv/bin/python app.py
 ```
 
-## 📖 使用方法
+ブラウザで `http://127.0.0.1:5001` を開きます。
 
-### 基本操作
-1. ** 企業検索**: 右上の「検索」ボタンで検索バーを表示し、企業名・住所・市区町村を入力
-2. ** 地図操作**: マウスドラッグで移動、ホイールでズーム（東京都内限定）
-3. ** 企業詳細**: マーカーをクリックしてポップアップ表示
-4. ** お気に入り**: ポップアップのボタンでお気に入り登録・解除
-5. ** 最寄駅情報**: 企業選択時に左下に駅情報パネルが表示
+設定可能な環境変数: `FLASK_HOST` / `FLASK_PORT` / `FLASK_DEBUG` / `API_TIMEOUT`。
 
-### 新規企業登録
-1. 右上の「検索」ボタンで検索バーを表示
-2. 検索バー下の「新しい企業を登録」をクリック
-3. 企業名・住所（東京都内のみ）を入力（法人番号は任意）
-4. 「登録」ボタンで完了（GeoCoding APIで座標自動取得）
+## データ生成スクリプト
 
-### お気に入り管理
-1. 左上の「お気に入り」ボタンでサイドバー表示
-2. リスト項目をクリックで該当企業にジャンプ
-3. サイドバー外クリックまたは地図クリックで閉じる
+データ投入・更新は `scripts/` 配下のスクリプトで行います（アプリ本体からは使用しません）。リポジトリ直下から実行します。
 
-### 最寄駅・ルート機能
-1. 企業マーカーをクリックして企業を選択
-2. 左下の駅情報パネルで最寄駅・徒歩時間を確認
-3. 「ルート表示/非表示」ボタンで駅までのルートを表示
-
-### モバイル利用
-- **👆 タッチ操作**: タップ・ピンチで地図操作
-- **📱 レスポンシブUI**: 検索バー・サイドバーが画面サイズに最適化
-- **🔤 フォーム入力**: 16pxフォントでズーム防止
-
-## 🔌 API仕様
-
-### GET /api/companies
-全企業データを取得
-```json
-[
-  {
-    "id": 1,
-    "name": "株式会社サンプル",
-    "address": "東京都渋谷区",
-    "latitude": 35.6895,
-    "longitude": 139.6917
-  }
-]
+```bash
+venv/bin/python scripts/fetch_it_companies.py   # gBizINFOの活動実績上位でIT企業を投入
+venv/bin/python scripts/fetch_listed_all.py     # 全業種の上場企業を追加
+venv/bin/python scripts/fetch_famous_all.py     # 全業種の著名・大規模企業を追加
+venv/bin/python scripts/fetch_edinet.py         # EDINETの売上・信用スコアを取得（日次上限内・再実行で続き）
+venv/bin/python scripts/geocode_refine.py       # 住所を町丁目レベルでジオコーディング
 ```
 
-### GET /search_companies?query={search_term}
-企業検索（クエリが空の場合はおすすめ企業のみ）
-```json
-{
-  "results": [
-    {
-      "id": 1,
-      "name": "株式会社サンプル",
-      "address": "東京都渋谷区",
-      "latitude": 35.6895,
-      "longitude": 139.6917,
-      "is_random": false
-    }
-  ],
-  "search_count": 1,
-  "random_count": 3
-}
-```
+`fetch_edinet.py` は 100リクエスト/日の上限内で知名度順に少しずつ取得し、結果をキャッシュします。日をまたいで再実行すると続きから取得します。
 
-### POST /register_company
-新規企業登録（東京都内限定・GeoCoding API使用）
-```json
-// Request
-{
-  "name": "新規企業株式会社",
-  "address": "東京都新宿区神南1-1-1",
-  "corporate_number": "1234567890123"
-}
+## API仕様
 
-// Response（成功時）
-{
-  "success": true,
-  "message": "Company registered successfully",
-  "company": {
-    "id": 234,
-    "name": "新規企業株式会社",
-    "address": "東京都新宿区神南1-1-1",
-    "latitude": 35.6935,
-    "longitude": 139.7034,
-    "station_info": {
-      "station": {
-        "name": "渋谷駅",
-        "lat": 35.6580,
-        "lng": 139.7016,
-        "lines": ["JR山手線", "東急東横線"]
-      },
-      "distance_km": 0.8,
-      "walk_time_minutes": 12
-    }
-  }
-}
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | `/` | アプリ画面 |
+| GET | `/api/companies` | DB の全企業を返す |
+| GET | `/api/company_detail?corporate_number=` | gBizINFO の法人詳細（サーバー経由でトークン秘匿） |
+| GET | `/api/edinet_detail?code=` | edinetdb.jp の企業詳細（全フィールド、DBキャッシュ付き）。`refresh=1` で再取得 |
+| GET | `/api/geocode?address=&id=` | 住所→緯度経度。`id` を渡すと座標を DB に保存 |
 
-// Response（東京都外エラー時）
-{
-  "success": false,
-  "error": "東京都内の住所のみ登録可能です"
-}
-```
-
-## 📁 ディレクトリ構成
+## ディレクトリ構成
 
 ```
-dbs_final/
-├── README.md              # プロジェクト説明書（更新済み）
-├── requirements.txt       # Python依存関係
-├── app.py                 # Flaskメインアプリケーション（GeoCoding API統合）
-├── config.py              # 設定ファイル
-├── db_utils.py            # データベースユーティリティ
-├── exceptions.py          # カスタム例外クラス
-├── fetch_gbiz_data.py     # サンプルデータ作成スクリプト
-├── static/
-│   └── js/
-│       └── main.js        # フロントエンドJavaScript（最寄駅・UI切替機能）
+.
+├── app.py              Flask アプリ本体
+├── config.py           設定（DB・API・アプリ）
+├── db_utils.py         DB接続・テーブル作成
+├── exceptions.py       例外とロガー
+├── requirements.txt
+├── secrets_local.py    APIキー（gitignore・各自作成）
 ├── templates/
-│   └── index.html         # メインHTMLテンプレート（東京都限定UI）
-└── venv/                  # Python仮想環境
+│   └── index.html      画面（HTML/CSS）
+├── static/js/
+│   └── main.js         フロントエンドロジック
+└── scripts/            データ生成・更新スクリプト
+    ├── fetch_it_companies.py
+    ├── fetch_listed_all.py
+    ├── fetch_famous_all.py
+    ├── fetch_edinet.py
+    └── geocode_refine.py
 ```
+
+## デプロイについて
+
+本アプリは静的ページ（GitHub Pages 等）としてはそのままデプロイできません。理由:
+
+- MySQL からデータを返す API が必要。
+- gBizINFO / EDINET / ジオコーディングへのアクセスは、APIキーを秘匿するためサーバー側でプロキシしている。
+- ブラウザから外部APIを直接叩くと、キー露出と CORS の問題が発生する。
+
+デプロイする場合は、Flask が動くサーバー（Render / Railway / Fly.io / VPS など）と MySQL を用意してください。どうしても静的化する場合は、企業一覧を静的 JSON に書き出し、詳細・ジオコーディングなどサーバー依存機能を外す（または別途 API を用意する）必要があります。
+
+## 補足・制約
+
+- edinetdb.jp は 100リクエスト/日。詳細はキャッシュされ、同じ企業の再表示はリクエストを消費しません。検索系はキー不要のため消費しません。
+- 座標は町丁目レベルの近似（番地までは特定しません）。
+- 読み仮名データを持たないため、五十音分類は社名先頭が漢字の場合「漢字・その他」にまとめます（カタカナ・ひらがな始まりは正しく分類）。
+- APIキーはコミットしないでください（`secrets_local.py` は `.gitignore` 済み）。
